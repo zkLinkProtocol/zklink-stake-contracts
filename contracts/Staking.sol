@@ -41,11 +41,11 @@ contract Staking is
         TWELVE_MONTHS
     }
 
-    mapping(address => Stake[]) public userStakes; // Mapping of user to an array of their stakes
-    mapping(address => uint256) public userTotalVeZKL; // Mapping to track total veZKL for each user
+    mapping(address => Stake[]) public userStakes; 
+    mapping(address => uint256) public userTotalVeZKL; 
 
-    uint256 public rewardPool; // Amount of reward tokens available for staking rewards
-    uint256 public totalLockedRewards; // Total amount of locked rewards for all users' stakes
+    uint256 public rewardPool; 
+    uint256 public totalLockedRewards; 
 
     event Staked(address indexed user, uint256 indexed amount, uint256 indexed stakingPeriod, uint256 veZKL);
     event Unstaked(address indexed user, uint256 indexed stakeIndex, uint256 indexed amount, uint256 rewards);
@@ -74,21 +74,16 @@ contract Staking is
         uint256 veZKL = (amount * config.stakePeriod) / (ONE_YEAR * 100);
         uint256 estimatedRewards = calculateEstimatedRewards(amount, config);
 
-        // Ensure there are enough rewards in the pool
         require(rewardPool >= totalLockedRewards + estimatedRewards, "Insufficient rewards in pool");
 
-        // Lock the estimated rewards
         totalLockedRewards += estimatedRewards;
 
-        // Increase user's total veZKL
         userTotalVeZKL[msg.sender] += veZKL;
 
-        // Create a new stake and add it to the user's stakes
         userStakes[msg.sender].push(
             Stake({amount: amount, startTime: block.timestamp, veZKL: veZKL, config: config, claimed: false})
         );
 
-        // Transfer ZKL tokens from user to contract
         zklToken.safeTransferFrom(msg.sender, address(this), amount);
 
         emit Staked(msg.sender, amount, config.stakePeriod, veZKL);
@@ -133,16 +128,13 @@ contract Staking is
 
         uint256 reward = calculateRewards(msg.sender, stakeIndex);
 
-        userStake.claimed = true; // Mark stake as claimed
+        userStake.claimed = true; 
 
-        // Adjust total locked rewards
         totalLockedRewards -= reward;
         rewardPool -= reward;
 
-        // Decrease user's total veZKL
         userTotalVeZKL[msg.sender] -= userStake.veZKL;
 
-        // Transfer staked tokens and rewards to the user
         zklToken.safeTransfer(msg.sender, userStake.amount + reward);
 
         emit Unstaked(msg.sender, stakeIndex, userStake.amount, reward);
@@ -157,9 +149,8 @@ contract Staking is
         emit RewardPoolFunded(amount);
     }
 
-    // Withdraw excess reward tokens from the pool
     function withdrawExcessRewards(uint256 amount) external onlyOwner {
-        uint256 availableRewards = rewardPool - totalLockedRewards; // Only withdraw excess rewards
+        uint256 availableRewards = rewardPool - totalLockedRewards; 
         require(amount <= availableRewards, "Amount exceeds excess rewards");
 
         rewardPool -= amount;
@@ -168,12 +159,10 @@ contract Staking is
         emit ExcessRewardWithdrawn(amount);
     }
 
-    // Get all stakes of a user
     function getUserStakes(address user) external view returns (Stake[] memory) {
         return userStakes[user];
     }
 
-    // Read function to get the total amount of staked tokens in the contract
     function getTotalStakedTokens() external view returns (uint256) {
         uint256 totalStaked = 0;
         for (uint256 i = 0; i < userStakes[msg.sender].length; i++) {
@@ -184,17 +173,14 @@ contract Staking is
         return totalStaked;
     }
 
-    // Read function to get the total veZKL of a specific user
     function getUserTotalVeZKL(address user) external view returns (uint256) {
         return userTotalVeZKL[user];
     }
 
-    // Read function to get the total rewards locked for users' stakes
     function getTotalLockedRewards() external view returns (uint256) {
         return totalLockedRewards;
     }
 
-    // Read function to get the available rewards in the reward pool
     function getAvailableRewards() external view returns (uint256) {
         return rewardPool - totalLockedRewards;
     }
@@ -203,7 +189,6 @@ contract Staking is
         return rewardPool;
     }
 
-    // Read function to get the details of a specific user's stake by index
     function getUserStakeDetails(
         address user,
         uint256 stakeIndex
