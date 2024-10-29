@@ -19,12 +19,14 @@ contract Staking is
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     IERC20Upgradeable public immutable zklToken;
-    uint256 public constant ONE_YEAR = 12;
+    uint256 public constant ONE_YEAR_IN_MONTHS = 12;
+    uint256 public constant PERCENT_BASE = 100;
 
     struct Stake {
         uint256 amount;
         uint256 startTime;
         uint256 veZKL;
+        uint256 rewards;
         StakeConfig config;
         bool claimed;
     }
@@ -41,11 +43,11 @@ contract Staking is
         TWELVE_MONTHS
     }
 
-    mapping(address => Stake[]) public userStakes; 
-    mapping(address => uint256) public userTotalVeZKL; 
+    mapping(address => Stake[]) public userStakes;
+    mapping(address => uint256) public userTotalVeZKL;
 
-    uint256 public rewardPool; 
-    uint256 public totalLockedRewards; 
+    uint256 public rewardPool;
+    uint256 public totalLockedRewards;
 
     event Staked(address indexed user, uint256 indexed amount, uint256 indexed stakingPeriod, uint256 veZKL);
     event Unstaked(address indexed user, uint256 indexed stakeIndex, uint256 indexed amount, uint256 rewards);
@@ -71,7 +73,7 @@ contract Staking is
         require(amount > 0, "Amount must be greater than zero");
         StakeConfig memory config = getStakeConfig(stakePeriod);
 
-        uint256 veZKL = (amount * config.stakePeriod) / (ONE_YEAR * 100);
+        uint256 veZKL = (amount * config.stakePeriod) / (ONE_YEAR_IN_MONTHS * PERCENT_BASE);
         uint256 estimatedRewards = calculateEstimatedRewards(amount, config);
 
         require(rewardPool >= totalLockedRewards + estimatedRewards, "Insufficient rewards in pool");
@@ -81,7 +83,14 @@ contract Staking is
         userTotalVeZKL[msg.sender] += veZKL;
 
         userStakes[msg.sender].push(
-            Stake({amount: amount, startTime: block.timestamp, veZKL: veZKL, config: config, claimed: false})
+            Stake({
+                amount: amount,
+                startTime: block.timestamp,
+                veZKL: veZKL,
+                rewards: estimatedRewards,
+                config: config,
+                claimed: false
+            })
         );
 
         zklToken.safeTransferFrom(msg.sender, address(this), amount);
@@ -105,30 +114,23 @@ contract Staking is
 
     // Calculate estimated rewards for a staking period
     function calculateEstimatedRewards(uint256 amount, StakeConfig memory config) public pure returns (uint256) {
-        return (amount * config.apr * config.stakePeriod) / (ONE_YEAR * 100);
-    }
-
-    // Calculate actual rewards based on a user's stake
-    function calculateRewards(address user, uint256 stakeIndex) public view returns (uint256) {
-        Stake memory userStake = userStakes[user][stakeIndex];
-        StakeConfig memory config = userStake.config;
-
-        return (userStake.amount * config.apr * config.stakePeriod) / (ONE_YEAR * 100);
+        return (amount * config.apr * config.stakePeriod) / (ONE_YEAR_IN_MONTHS * PERCENT_BASE);
     }
 
     // Unstake tokens and claim rewards after staking period ends
     function unstake(uint256 stakeIndex) external nonReentrant whenNotPaused {
+        require(stakeIndex < userStakes[msg.sender].length, "Invalid stake index");
+
         Stake storage userStake = userStakes[msg.sender][stakeIndex];
-        require(userStake.amount > 0, "Invalid stake");
         require(!userStake.claimed, "Stake already claimed");
         require(
             block.timestamp >= userStake.startTime + userStake.config.stakePeriod * 30 days,
             "Staking period not yet expired"
         );
 
-        uint256 reward = calculateRewards(msg.sender, stakeIndex);
+        uint256 reward = userStake.rewards;
 
-        userStake.claimed = true; 
+        userStake.claimed = true;
 
         totalLockedRewards -= reward;
         rewardPool -= reward;
@@ -150,7 +152,7 @@ contract Staking is
     }
 
     function withdrawExcessRewards(uint256 amount) external onlyOwner {
-        uint256 availableRewards = rewardPool - totalLockedRewards; 
+        uint256 availableRewards = rewardPool - totalLockedRewards;
         require(amount <= availableRewards, "Amount exceeds excess rewards");
 
         rewardPool -= amount;
@@ -161,6 +163,10 @@ contract Staking is
 
     function getUserStakes(address user) external view returns (Stake[] memory) {
         return userStakes[user];
+    }
+
+    function getUserStakesLength(address user) external view returns (uint256) {
+        return userStakes[user].length;
     }
 
     function getTotalStakedTokens() external view returns (uint256) {
@@ -195,13 +201,22 @@ contract Staking is
     )
         external
         view
-        returns (uint256 amount, uint256 startTime, uint256 veZKL, uint256 stakePeriod, uint256 apr, bool claimed)
+        returns (
+            uint256 amount,
+            uint256 startTime,
+            uint256 veZKL,
+            uint256 rewards,
+            uint256 stakePeriod,
+            uint256 apr,
+            bool claimed
+        )
     {
         Stake memory userStake = userStakes[user][stakeIndex];
         return (
             userStake.amount,
             userStake.startTime,
             userStake.veZKL,
+            userStake.rewards,
             userStake.config.stakePeriod,
             userStake.config.apr,
             userStake.claimed
