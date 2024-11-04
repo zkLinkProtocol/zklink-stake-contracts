@@ -101,13 +101,13 @@ contract Staking is
     // Get the configuration for a specific staking period
     function getStakeConfig(StakingPeriod stakePeriod) public pure returns (StakeConfig memory) {
         if (stakePeriod == StakingPeriod.THREE_MONTHS) {
-            return StakeConfig({stakePeriod: 3, apr: 15});
+            return StakeConfig({stakePeriod: 3, apr: 20});
         } else if (stakePeriod == StakingPeriod.SIX_MONTHS) {
-            return StakeConfig({stakePeriod: 6, apr: 20});
+            return StakeConfig({stakePeriod: 6, apr: 25});
         } else if (stakePeriod == StakingPeriod.NINE_MONTHS) {
-            return StakeConfig({stakePeriod: 9, apr: 25});
+            return StakeConfig({stakePeriod: 9, apr: 30});
         } else if (stakePeriod == StakingPeriod.TWELVE_MONTHS) {
-            return StakeConfig({stakePeriod: 12, apr: 30});
+            return StakeConfig({stakePeriod: 12, apr: 35});
         }
         revert("Invalid staking period");
     }
