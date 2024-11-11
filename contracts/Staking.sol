@@ -8,7 +8,6 @@ import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ER
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import {console} from "hardhat/console.sol";
 
 contract Staking is
     Initializable,
@@ -73,7 +72,7 @@ contract Staking is
         require(amount > 0, "Amount must be greater than zero");
         StakeConfig memory config = getStakeConfig(stakePeriod);
 
-        uint256 veZKL = (amount * config.stakePeriod) / (ONE_YEAR_IN_MONTHS * PERCENT_BASE);
+        uint256 veZKL = (amount * config.stakePeriod) / ONE_YEAR_IN_MONTHS;
         uint256 estimatedRewards = calculateEstimatedRewards(amount, config);
 
         require(rewardPool >= totalLockedRewards + estimatedRewards, "Insufficient rewards in pool");
@@ -144,6 +143,7 @@ contract Staking is
 
     // Fund the reward pool
     function fundRewardPool(uint256 amount) external onlyOwner {
+        require(amount > 0, "Amount must be greater than zero");
         zklToken.safeTransferFrom(msg.sender, address(this), amount);
 
         rewardPool += amount;
@@ -169,7 +169,7 @@ contract Staking is
         return userStakes[user].length;
     }
 
-    function getTotalStakedTokens() external view returns (uint256) {
+    function getUserTotalStakedTokens() external view returns (uint256) {
         uint256 totalStaked = 0;
         for (uint256 i = 0; i < userStakes[msg.sender].length; i++) {
             if (!userStakes[msg.sender][i].claimed) {
