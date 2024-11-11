@@ -169,11 +169,11 @@ contract Staking is
         return userStakes[user].length;
     }
 
-    function getUserTotalStakedTokens() external view returns (uint256) {
+    function getUserTotalStakedTokens(address user) external view returns (uint256) {
         uint256 totalStaked = 0;
-        for (uint256 i = 0; i < userStakes[msg.sender].length; i++) {
-            if (!userStakes[msg.sender][i].claimed) {
-                totalStaked += userStakes[msg.sender][i].amount;
+        for (uint256 i = 0; i < userStakes[user].length; i++) {
+            if (!userStakes[user][i].claimed) {
+                totalStaked += userStakes[user][i].amount;
             }
         }
         return totalStaked;
