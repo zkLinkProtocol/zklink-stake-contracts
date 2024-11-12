@@ -5,7 +5,7 @@
 - Branch: `issues_1`
 
 ## Features
-Supports staking and claim of ZKL tokens. Requirement document: [https://zklinklfg.sg.larksuite.com/docx/TdLXdMNNHoxZYFxUsMIl34FRgzh](https://zklinklfg.sg.larksuite.com/docx/TdLXdMNNHoxZYFxUsMIl34FRgzh)
+Supports staking and claim of ZKL tokens. 
 
 ## Code Summary
 **Total lines of code: 225**
