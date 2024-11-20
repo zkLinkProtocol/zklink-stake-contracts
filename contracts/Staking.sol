@@ -47,6 +47,10 @@ contract Staking is
 
     uint256 public rewardPool;
     uint256 public totalLockedRewards;
+    uint256 public totalVeZKL;
+    uint256 public totalStaked;
+    uint256 public zklMulMonth;
+    uint256 public zklMulApr;
 
     event Staked(address indexed user, uint256 indexed amount, uint256 indexed stakingPeriod, uint256 veZKL);
     event Unstaked(address indexed user, uint256 indexed stakeIndex, uint256 indexed amount, uint256 rewards);
@@ -80,6 +84,10 @@ contract Staking is
         totalLockedRewards += estimatedRewards;
 
         userTotalVeZKL[msg.sender] += veZKL;
+        totalStaked += amount;
+        totalVeZKL += veZKL;
+        zklMulMonth += amount * config.stakePeriod;
+        zklMulApr += amount * config.apr;
 
         userStakes[msg.sender].push(
             Stake({
@@ -134,6 +142,11 @@ contract Staking is
         totalLockedRewards -= reward;
         rewardPool -= reward;
 
+        totalStaked -= userStake.amount;
+        totalVeZKL -= userStake.veZKL;
+        zklMulMonth -= userStake.amount * userStake.config.stakePeriod;
+        zklMulApr -= userStake.amount * userStake.config.apr;
+
         userTotalVeZKL[msg.sender] -= userStake.veZKL;
 
         zklToken.safeTransfer(msg.sender, userStake.amount + reward);
@@ -170,13 +183,13 @@ contract Staking is
     }
 
     function getUserTotalStakedTokens(address user) external view returns (uint256) {
-        uint256 totalStaked = 0;
+        uint256 userTotalStaked = 0;
         for (uint256 i = 0; i < userStakes[user].length; i++) {
             if (!userStakes[user][i].claimed) {
-                totalStaked += userStakes[user][i].amount;
+                userTotalStaked += userStakes[user][i].amount;
             }
         }
-        return totalStaked;
+        return userTotalStaked;
     }
 
     function getUserTotalVeZKL(address user) external view returns (uint256) {
@@ -193,6 +206,22 @@ contract Staking is
 
     function getRewardPool() external view returns (uint256) {
         return rewardPool;
+    }
+
+    function getTotalStaked() external view returns (uint256) {
+        return totalStaked;
+    }
+
+    function getTotalVeZKL() external view returns (uint256) {
+        return totalVeZKL;
+    }
+
+    function getZklMulMonth() external view returns (uint256) {
+        return zklMulMonth;
+    }
+
+    function getZklMulApr() external view returns (uint256) {
+        return zklMulApr;
     }
 
     function getUserStakeDetails(
